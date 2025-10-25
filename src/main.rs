@@ -90,6 +90,39 @@ impl Board {
         Self{ squares: [None; 64] }
     }
 
+        fn start_pos() -> Self {
+        use Color::*;
+        use Kind::*;
+
+        let mut board = Self::empty();
+
+        let sq = |file: u8, rank: u8| Square::from_coords(file, rank).unwrap();
+
+        // Pawns
+        for file in 0..8 {
+            board.place(Piece { color: White, kind: Pawn }, sq(file, 1));
+            board.place(Piece { color: Black, kind: Pawn }, sq(file, 6));
+        }
+
+        // White back rank
+        let white_back_rank = [
+            Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
+        ];
+        for (file, &kind) in white_back_rank.iter().enumerate() {
+            board.place(Piece { color: White, kind }, sq(file as u8, 0));
+        }
+
+        // Black back rank
+        let black_back_rank = [
+            Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
+        ];
+        for (file, &kind) in black_back_rank.iter().enumerate() {
+            board.place(Piece { color: Black, kind }, sq(file as u8, 7));
+        }
+
+        board
+    }
+
     fn place(&mut self, p: Piece, sq: Square){
         self.squares[sq.idx()] = Some(p);
     }
@@ -121,11 +154,6 @@ impl fmt::Display for Board {
 }
 
 fn main() {
-    let test_piece = Piece { color: Color::White, kind: Kind::King };
-    let square = Square::from_coords(4, 0).unwrap();
-    let mut board = Board::empty();
-    board.place(test_piece, square);
-    println!("Hello, world! {}", test_piece);
-    println!();
+    let board = Board::start_pos();
     println!("{}", board);
 }
