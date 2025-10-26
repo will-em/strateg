@@ -153,6 +153,41 @@ impl fmt::Display for Board {
     }
 }
 
+#[derive(Clone, Copy)]
+enum MoveKind {
+    Quiet,
+    Capture,
+    DoublePawnPush,
+    EnPassant,
+    Castle { kingside: bool },
+    Promotion { to: Kind, is_capture: bool },
+}
+
+struct Move {
+    from: Square,
+    to: Square,
+    kind: MoveKind,
+}
+
+struct SideRights {
+    king: bool,   // O-O
+    queen: bool,  // O-O-O
+}
+
+struct Castling {
+    white: SideRights,
+    black: SideRights,
+}
+
+struct Position {
+    board: Board,
+    stm: Color, // Side to move
+    castling: Castling,
+    ep: Option<Square>, // En passant
+    halfmove: u16,
+    fullmove: u16,
+}
+
 fn main() {
     let board = Board::start_pos();
     println!("{}", board);
