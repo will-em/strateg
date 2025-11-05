@@ -331,6 +331,57 @@ fn slider_ray(board: &Board, from: Square, color: Color, dx: i8, dy: i8) -> Vec<
     moves
 }
 
+fn pawn_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
+    let mut moves: Vec<Move> = Vec::with_capacity(4);
+
+    let dir: i8 = if color == Color::White { 1 } else { -1 };
+
+    // Forward
+    if let Some(single_step) = from.offset_if_valid(0, dir) {
+        if board.piece(single_step).is_none() {
+            moves.push(Move {
+                from,
+                to: single_step,
+                kind: MoveKind::Quiet,
+            });
+
+            // Double step
+            let rank = from.rank();
+            let double_available =
+                rank == 1 && color == Color::White || rank == 6 && color == Color::Black;
+
+            if double_available {
+                if let Some(double_step) = from.offset_if_valid(0, 2 * dir) {
+                    if board.piece(double_step).is_none() {
+                        moves.push(Move {
+                            from,
+                            to: double_step,
+                            kind: MoveKind::DoublePawnPush,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Diagonal
+    for dx in [-1i8, 1i8] {
+        if let Some(diagonal_step) = from.offset_if_valid(dx, dir) {
+            if let Some(other) = board.piece(diagonal_step) {
+                if other.color != color {
+                    moves.push(Move {
+                        from,
+                        to: diagonal_step,
+                        kind: MoveKind::Capture,
+                    });
+                }
+            }
+        }
+    }
+
+    moves
+}
+
 impl Position {
     fn pseudo_legal_moves(&self) -> Vec<Move> {
         self.board
@@ -357,8 +408,7 @@ impl Position {
                         Kind::King => {
                             leaper_pseudo_moves(&self.board, from, piece.color, &KNIGHT_OFFSETS)
                         }
-
-                        _ => Vec::new(),
+                        Kind::Pawn => pawn_pseudo_moves(&self.board, from, piece.color),
                     }
                 }
                 _ => Vec::new(),
