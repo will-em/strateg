@@ -264,10 +264,15 @@ const QUEEN_DIRS: [(i8, i8); 8] = [
     (-1, -1),
 ];
 
-fn knight_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
-    KNIGHT_OFFSETS
+fn leaper_pseudo_moves(
+    board: &Board,
+    from: Square,
+    color: Color,
+    offsets: &[(i8, i8)],
+) -> Vec<Move> {
+    offsets
         .into_iter()
-        .filter_map(|(dx, dy)| from.offset_if_valid(dx, dy))
+        .filter_map(|&(dx, dy)| from.offset_if_valid(dx, dy))
         .filter_map(|to| match board.piece(to) {
             Some(other_piece) if other_piece.color != color => Some(Move {
                 from,
@@ -284,6 +289,48 @@ fn knight_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
         .collect()
 }
 
+fn slider_psuedo_moves(board: &Board, from: Square, color: Color, dirs: &[(i8, i8)]) -> Vec<Move> {
+    dirs.into_iter()
+        .flat_map(|&(dx, dy)| slider_ray(board, from, color, dx, dy))
+        .collect()
+}
+
+fn slider_ray(board: &Board, from: Square, color: Color, dx: i8, dy: i8) -> Vec<Move> {
+    let mut moves = Vec::with_capacity(7);
+
+    let mut cur = from;
+
+    loop {
+        let Some(to) = cur.offset_if_valid(dx, dy) else {
+            break;
+        };
+
+        match board.piece(to) {
+            Some(piece) if piece.color == color => break, // Hit own piece
+            Some(_) => {
+                // Capture
+                moves.push(Move {
+                    from,
+                    to,
+                    kind: MoveKind::Capture,
+                });
+                break;
+            }
+            None => {
+                // Quiet
+                moves.push(Move {
+                    from,
+                    to,
+                    kind: MoveKind::Quiet,
+                });
+                cur = to;
+            }
+        }
+    }
+
+    moves
+}
+
 impl Position {
     fn pseudo_legal_moves(&self) -> Vec<Move> {
         self.board
@@ -295,7 +342,22 @@ impl Position {
                     let from = Square(i as u8);
 
                     match piece.kind {
-                        Kind::Knight => knight_pseudo_moves(&self.board, from, piece.color),
+                        Kind::Knight => {
+                            leaper_pseudo_moves(&self.board, from, piece.color, &KNIGHT_OFFSETS)
+                        }
+                        Kind::Bishop => {
+                            slider_psuedo_moves(&self.board, from, piece.color, &BISHOP_DIRS)
+                        }
+                        Kind::Rook => {
+                            slider_psuedo_moves(&self.board, from, piece.color, &ROOK_DIRS)
+                        }
+                        Kind::Queen => {
+                            slider_psuedo_moves(&self.board, from, piece.color, &QUEEN_DIRS)
+                        }
+                        Kind::King => {
+                            leaper_pseudo_moves(&self.board, from, piece.color, &KNIGHT_OFFSETS)
+                        }
+
                         _ => Vec::new(),
                     }
                 }
