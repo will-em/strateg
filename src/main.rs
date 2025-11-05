@@ -9,7 +9,7 @@ enum Color {
     Black,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Kind {
     Pawn,
     Knight,
@@ -74,7 +74,7 @@ impl fmt::Display for Piece {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Square(u8);
 
 impl Square {
@@ -192,7 +192,7 @@ impl fmt::Display for Board {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum MoveKind {
     Quiet,
     Capture,
@@ -202,6 +202,7 @@ enum MoveKind {
     Promotion { to: Kind, is_capture: bool },
 }
 
+#[derive(Debug)]
 struct Move {
     from: Square,
     to: Square,
@@ -419,5 +420,28 @@ impl Position {
 
 fn main() {
     let board = Board::start_pos();
-    println!("{}", board);
+    let castling = Castling {
+        white: SideRights {
+            king: true,
+            queen: true,
+        },
+        black: SideRights {
+            king: true,
+            queen: true,
+        },
+    };
+
+    let position = Position {
+        board,
+        stm: Color::White,
+        castling: castling,
+        ep: None,
+        fullmove: 0,
+        halfmove: 0,
+    };
+
+    let starting_moves = position.pseudo_legal_moves();
+    println!("{}", &position.board);
+    println!("{:?}", starting_moves);
+    println!("{}", starting_moves.len());
 }
