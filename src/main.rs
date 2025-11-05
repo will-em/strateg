@@ -407,7 +407,7 @@ impl Position {
                             slider_psuedo_moves(&self.board, from, piece.color, &QUEEN_DIRS)
                         }
                         Kind::King => {
-                            leaper_pseudo_moves(&self.board, from, piece.color, &KNIGHT_OFFSETS)
+                            leaper_pseudo_moves(&self.board, from, piece.color, &KING_OFFSETS)
                         }
                         Kind::Pawn => pawn_pseudo_moves(&self.board, from, piece.color),
                     }
