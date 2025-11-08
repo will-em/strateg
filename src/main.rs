@@ -106,6 +106,7 @@ impl Square {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Board {
     squares: [Option<Piece>; 64],
 }
@@ -209,16 +210,19 @@ struct Move {
     kind: MoveKind,
 }
 
+#[derive(Copy, Clone)]
 struct SideRights {
     king: bool,  // O-O
     queen: bool, // O-O-O
 }
 
+#[derive(Clone, Copy)]
 struct Castling {
     white: SideRights,
     black: SideRights,
 }
 
+#[derive(Clone, Copy)]
 struct Position {
     board: Board,
     stm: Color, // Side to move
@@ -415,6 +419,21 @@ impl Position {
                 _ => Vec::new(),
             })
             .collect()
+    }
+    fn make_move(&self, mv: &Move) -> Self {
+        let mut new_pos = self.clone();
+
+        if let Some(piece) = new_pos.board.piece(mv.from) {
+            new_pos.board.squares[mv.to.idx()] = Some(piece);
+            new_pos.board.squares[mv.from.idx()] = None;
+        }
+
+        new_pos.stm = match new_pos.stm {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        };
+
+        new_pos
     }
 }
 
