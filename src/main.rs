@@ -1,3 +1,4 @@
+use rand::{rng, seq::IndexedRandom};
 use std::fmt;
 
 const BOARD_SIZE: usize = 8;
@@ -420,6 +421,7 @@ impl Position {
             })
             .collect()
     }
+
     fn make_move(&self, mv: &Move) -> Self {
         let mut new_pos = self.clone();
 
@@ -450,7 +452,7 @@ fn main() {
         },
     };
 
-    let position = Position {
+    let mut position = Position {
         board,
         stm: Color::White,
         castling: castling,
@@ -459,8 +461,13 @@ fn main() {
         halfmove: 0,
     };
 
-    let starting_moves = position.pseudo_legal_moves();
     println!("{}", &position.board);
-    println!("{:?}", starting_moves);
-    println!("{}", starting_moves.len());
+    let mut rng = rng();
+    for _ in 1..10 {
+        let moves = position.pseudo_legal_moves();
+        if let Some(random_move) = moves.choose(&mut rng) {
+            position = position.make_move(random_move);
+        }
+        println!("{}", &position.board);
+    }
 }
