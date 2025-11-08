@@ -295,7 +295,7 @@ fn leaper_pseudo_moves(
         .collect()
 }
 
-fn slider_psuedo_moves(board: &Board, from: Square, color: Color, dirs: &[(i8, i8)]) -> Vec<Move> {
+fn slider_pseudo_moves(board: &Board, from: Square, color: Color, dirs: &[(i8, i8)]) -> Vec<Move> {
     dirs.into_iter()
         .flat_map(|&(dx, dy)| slider_ray(board, from, color, dx, dy))
         .collect()
@@ -403,13 +403,13 @@ impl Position {
                             leaper_pseudo_moves(&self.board, from, piece.color, &KNIGHT_OFFSETS)
                         }
                         Kind::Bishop => {
-                            slider_psuedo_moves(&self.board, from, piece.color, &BISHOP_DIRS)
+                            slider_pseudo_moves(&self.board, from, piece.color, &BISHOP_DIRS)
                         }
                         Kind::Rook => {
-                            slider_psuedo_moves(&self.board, from, piece.color, &ROOK_DIRS)
+                            slider_pseudo_moves(&self.board, from, piece.color, &ROOK_DIRS)
                         }
                         Kind::Queen => {
-                            slider_psuedo_moves(&self.board, from, piece.color, &QUEEN_DIRS)
+                            slider_pseudo_moves(&self.board, from, piece.color, &QUEEN_DIRS)
                         }
                         Kind::King => {
                             leaper_pseudo_moves(&self.board, from, piece.color, &KING_OFFSETS)
