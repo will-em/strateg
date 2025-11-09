@@ -19,7 +19,7 @@ impl Color {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Kind {
     Pawn,
     Knight,
@@ -398,6 +398,99 @@ fn pawn_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
 }
 
 impl Position {
+    fn king_square(&self, color: Color) -> Square {
+        let (i, _) = self
+            .board
+            .squares
+            .iter()
+            .enumerate()
+            .find(|(_, cell)| {
+                if let Some(piece) = cell {
+                    piece.kind == Kind::King && piece.color == color
+                } else {
+                    false
+                }
+            })
+            .expect("No king found for this color");
+
+        Square(i as u8)
+    }
+
+    fn is_square_attacked(&self, target: Square, by: Color) -> bool {
+        // Knights
+        if KNIGHT_OFFSETS.iter().any(|&(dx, dy)| {
+            target
+                .offset_if_valid(dx, dy)
+                .and_then(|sq| self.board.piece(sq))
+                .is_some_and(|piece| piece.kind == Kind::Knight && piece.color == by)
+        }) {
+            return true;
+        }
+
+        // King
+        if KING_OFFSETS.iter().any(|&(dx, dy)| {
+            target
+                .offset_if_valid(dx, dy)
+                .and_then(|sq| self.board.piece(sq))
+                .is_some_and(|piece| piece.kind == Kind::King && piece.color == by)
+        }) {
+            return true;
+        }
+
+        // Pawns
+        let dy: i8 = if by == Color::White { -1 } else { 1 };
+        if [-1, 1]
+            .into_iter()
+            .filter_map(|dx| target.offset_if_valid(dx, dy))
+            .any(|sq| {
+                if let Some(piece) = self.board.piece(sq) {
+                    piece.kind == Kind::Pawn && piece.color == by
+                } else {
+                    false
+                }
+            })
+        {
+            return true;
+        }
+
+        // Sliders
+        for &(dx, dy) in &QUEEN_DIRS {
+            let diagonal = dx != 0 && dy != 0;
+            let mut cur = target;
+
+            while let Some(nxt) = cur.offset_if_valid(dx, dy) {
+                match self.board.piece(nxt) {
+                    None => {
+                        cur = nxt;
+                        continue;
+                    }
+                    Some(Piece { color, kind }) => {
+                        if color == by {
+                            if diagonal {
+                                if kind == Kind::Bishop || kind == Kind::Queen {
+                                    return true;
+                                }
+                            } else {
+                                if kind == Kind::Rook || kind == Kind::Queen {
+                                    return true;
+                                }
+                            }
+                        }
+
+                        break; // Stop ray when piece hit
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    fn in_check(&self, color: Color) -> bool {
+        let king_sq = self.king_square(color);
+        self.is_square_attacked(king_sq, color.opposite())
+    }
+
     fn pseudo_legal_moves(&self) -> Vec<Move> {
         self.board
             .squares
@@ -427,6 +520,16 @@ impl Position {
                     }
                 }
                 _ => Vec::new(),
+            })
+            .collect()
+    }
+
+    fn legal_moves(&self) -> Vec<Move> {
+        self.pseudo_legal_moves()
+            .into_iter()
+            .filter(|mv| {
+                let new_pos = self.make_move(mv);
+                !new_pos.in_check(self.stm)
             })
             .collect()
     }
@@ -469,8 +572,8 @@ fn main() {
 
     println!("{}", &position.board);
     let mut rng = rng();
-    for _ in 1..10 {
-        let moves = position.pseudo_legal_moves();
+    for _ in 1..1000 {
+        let moves = position.legal_moves();
         if let Some(random_move) = moves.choose(&mut rng) {
             position = position.make_move(random_move);
         }
