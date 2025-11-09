@@ -10,6 +10,15 @@ enum Color {
     Black,
 }
 
+impl Color {
+    fn opposite(&self) -> Self {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Kind {
     Pawn,
@@ -430,10 +439,7 @@ impl Position {
             new_pos.board.squares[mv.from.idx()] = None;
         }
 
-        new_pos.stm = match new_pos.stm {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
-        };
+        new_pos.stm = new_pos.stm.opposite();
 
         new_pos
     }
