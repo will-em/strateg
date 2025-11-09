@@ -76,6 +76,22 @@ impl Piece {
             (Black, Pawn) => '♟',
         }
     }
+
+    fn value(&self) -> i32 {
+        let base = match self.kind {
+            Kind::Pawn => 100,
+            Kind::Knight => 320,
+            Kind::Bishop => 330,
+            Kind::Rook => 500,
+            Kind::Queen => 900,
+            Kind::King => 0,
+        };
+        if self.color == Color::White {
+            base
+        } else {
+            -base
+        }
+    }
 }
 
 impl fmt::Display for Piece {
@@ -546,6 +562,15 @@ impl Position {
 
         new_pos
     }
+
+    fn evaluate(&self) -> i32 {
+        self.board
+            .squares
+            .iter()
+            .flatten()
+            .map(|piece| piece.value())
+            .sum()
+    }
 }
 
 fn main() {
@@ -572,11 +597,12 @@ fn main() {
 
     println!("{}", &position.board);
     let mut rng = rng();
-    for _ in 1..1000 {
+    for _ in 0..100 {
         let moves = position.legal_moves();
         if let Some(random_move) = moves.choose(&mut rng) {
             position = position.make_move(random_move);
         }
         println!("{}", &position.board);
+        println!("{}", position.evaluate());
     }
 }
