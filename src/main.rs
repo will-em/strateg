@@ -362,19 +362,38 @@ fn slider_ray(board: &Board, from: Square, color: Color, dx: i8, dy: i8) -> Vec<
     moves
 }
 
-fn pawn_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
+fn pawn_pseudo_moves(board: &Board, from: Square, color: Color, ep: Option<Square>) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::with_capacity(4);
 
     let dir: i8 = if color == Color::White { 1 } else { -1 };
+    let is_promo_rank = |rank: u8| -> bool {
+        (color == Color::White && rank == 7) || (color == Color::Black && rank == 0)
+    };
 
     // Forward
     if let Some(single_step) = from.offset_if_valid(0, dir) {
         if board.piece(single_step).is_none() {
-            moves.push(Move {
-                from,
-                to: single_step,
-                kind: MoveKind::Quiet,
-            });
+            if is_promo_rank(single_step.rank()) {
+                // Promotion
+                moves.extend(
+                    [Kind::Queen, Kind::Rook, Kind::Bishop, Kind::Knight]
+                        .into_iter()
+                        .map(|to_kind| Move {
+                            from,
+                            to: single_step,
+                            kind: MoveKind::Promotion {
+                                to: to_kind,
+                                is_capture: false,
+                            },
+                        }),
+                );
+            } else {
+                moves.push(Move {
+                    from,
+                    to: single_step,
+                    kind: MoveKind::Quiet,
+                });
+            }
 
             // Double step
             let rank = from.rank();
@@ -400,10 +419,41 @@ fn pawn_pseudo_moves(board: &Board, from: Square, color: Color) -> Vec<Move> {
         if let Some(diagonal_step) = from.offset_if_valid(dx, dir) {
             if let Some(other) = board.piece(diagonal_step) {
                 if other.color != color {
+                    if is_promo_rank(diagonal_step.rank()) {
+                        // Promotion
+                        moves.extend(
+                            [Kind::Queen, Kind::Rook, Kind::Bishop, Kind::Knight]
+                                .into_iter()
+                                .map(|to_kind| Move {
+                                    from,
+                                    to: diagonal_step,
+                                    kind: MoveKind::Promotion {
+                                        to: to_kind,
+                                        is_capture: false,
+                                    },
+                                }),
+                        );
+                    } else {
+                        moves.push(Move {
+                            from,
+                            to: diagonal_step,
+                            kind: MoveKind::Capture,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // En passant
+    if let Some(ep_sq) = ep {
+        for dx in [-1i8, 1i8] {
+            if let Some(to) = from.offset_if_valid(dx, dir) {
+                if to.idx() == ep_sq.idx() {
                     moves.push(Move {
                         from,
-                        to: diagonal_step,
-                        kind: MoveKind::Capture,
+                        to,
+                        kind: MoveKind::EnPassant,
                     });
                 }
             }
@@ -532,7 +582,7 @@ impl Position {
                         Kind::King => {
                             leaper_pseudo_moves(&self.board, from, piece.color, &KING_OFFSETS)
                         }
-                        Kind::Pawn => pawn_pseudo_moves(&self.board, from, piece.color),
+                        Kind::Pawn => pawn_pseudo_moves(&self.board, from, piece.color, self.ep),
                     }
                 }
                 _ => Vec::new(),
